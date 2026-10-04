@@ -64,6 +64,17 @@ void test_bad_mode_and_missing_pieces(void) {
   TEST_ASSERT_EQUAL(ARGS_BAD, args_parse(7, m5, &a));
 }
 
+void test_timeout_limits(void) {
+  struct args a;
+  char *ok[] = {"myapp", "send", "-s", "a", "-T", "60000", "h", "f", NULL};
+  char *over[] = {"myapp", "send", "-s", "a", "-T", "60001", "h", "f", NULL};
+  char *zero[] = {"myapp", "send", "-s", "a", "-T", "0", "h", "f", NULL};
+  TEST_ASSERT_EQUAL(ARGS_OK, args_parse(8, ok, &a));
+  TEST_ASSERT_EQUAL_UINT(60000, a.timeout_ms);
+  TEST_ASSERT_EQUAL(ARGS_BAD, args_parse(8, over, &a));
+  TEST_ASSERT_EQUAL(ARGS_BAD, args_parse(8, zero, &a));
+}
+
 void test_bad_values(void) {
   struct args a;
   char *w0[] = {"myapp", "send", "-s", "a", "-w", "0", "h", "f", NULL};
@@ -92,5 +103,6 @@ void run_args_tests(void) {
   RUN_TEST(test_recv_rejects_send_options);
   RUN_TEST(test_bad_mode_and_missing_pieces);
   RUN_TEST(test_bad_values);
+  RUN_TEST(test_timeout_limits);
   RUN_TEST(test_usage_text_starts_correctly);
 }
