@@ -16,8 +16,8 @@ enum args_status {
 struct args {
   enum args_mode mode;
   char session[ARGS_SESSION_MAX + 1];
-  unsigned window;
-  unsigned timeout_ms;
+  uint16_t window;
+  uint16_t timeout_ms;
   double loss;
   double corrupt;
   double dup;

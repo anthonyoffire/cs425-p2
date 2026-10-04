@@ -1,3 +1,8 @@
+/* ======================================================================
+ * SUPPORT: COMMAND LINE (outside the three layers)
+ * Pure parsing of argv into a struct; no I/O.
+ * ====================================================================== */
+
 #include "args.h"
 
 #include <errno.h>
@@ -9,7 +14,7 @@
 #define DEFAULT_TIMEOUT_MS 250
 #define DEFAULT_PORT 4250
 #define MAX_WINDOW 64
-#define MAX_TIMEOUT_MS 600000
+#define MAX_TIMEOUT_MS 60000
 
 static const char USAGE[] =
     "Usage: myapp send -s <session> [-w window] [-T timeout-ms] [-l loss]\n"
@@ -118,13 +123,13 @@ enum args_status args_parse(int argc, char **argv, struct args *out) {
       if (parse_long(optarg, 1, MAX_WINDOW, &n) != 0) {
         return ARGS_BAD;
       }
-      a.window = (unsigned)n;
+      a.window = (uint16_t)n;
       break;
     case 'T':
       if (parse_long(optarg, 1, MAX_TIMEOUT_MS, &n) != 0) {
         return ARGS_BAD;
       }
-      a.timeout_ms = (unsigned)n;
+      a.timeout_ms = (uint16_t)n;
       break;
     case 'l':
       if (parse_prob(optarg, &a.loss) != 0) {

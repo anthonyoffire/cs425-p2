@@ -50,7 +50,7 @@ enum sys_status run_receiver(struct sys_ctx *c);
 
 enum sys_status get_current_time_ms(uint64_t *out_ms);
 enum sys_status send_datagram(const struct sys_ctx *c, const uint8_t *buf, size_t len);
-enum sys_status wait_for_datagram(const struct sys_ctx *c, uint8_t *buf, size_t cap,
+enum sys_status poll_for_datagram(const struct sys_ctx *c, uint8_t *buf, size_t cap,
                                   int timeout_ms, size_t *out_len);
 
 #endif // SYS_OPS_H

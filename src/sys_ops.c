@@ -153,7 +153,7 @@ enum sys_status send_datagram(const struct sys_ctx *c, const uint8_t *buf, size_
   }
 }
 
-enum sys_status wait_for_datagram(const struct sys_ctx *c, uint8_t *buf, size_t cap,
+enum sys_status poll_for_datagram(const struct sys_ctx *c, uint8_t *buf, size_t cap,
                                   int timeout_ms, size_t *out_len) {
   struct pollfd pfd;
   pfd.fd = c->fd;
@@ -196,7 +196,7 @@ enum sys_status net_register(struct sys_ctx *c, const char *session, int is_send
     }
     for (int strays = 0; strays < HELLO_MAX_STRAYS; strays++) {
       size_t n = 0;
-      st = wait_for_datagram(c, buf, sizeof buf, HELLO_REPLY_TIMEOUT_MS, &n);
+      st = poll_for_datagram(c, buf, sizeof buf, HELLO_REPLY_TIMEOUT_MS, &n);
       if (st == SYS_TIMEOUT) {
         break;
       }
