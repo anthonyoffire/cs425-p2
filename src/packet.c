@@ -83,6 +83,12 @@ enum pkt_status pkt_decode(const uint8_t *buf, size_t n, struct packet *out) {
   return PKT_OK;
 }
 
+/* ======================================================================
+ * LAYER 3: I/O (relay hello)
+ * The hello text is built and parsed here without touching the socket; sys_ops.c
+ * sends and receives it.
+ * ====================================================================== */
+
 enum pkt_status hello_format(char *buf, size_t cap, const char *session,
                              int is_sender, double loss, double corrupt,
                              double dup, size_t *out_len) {

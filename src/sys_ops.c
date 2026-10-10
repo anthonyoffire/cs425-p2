@@ -1,17 +1,13 @@
-/* ======================================================================
- * LAYER 3: I/O
- * The socket, relay hello, poll loop, clock and file. Reads an event, hands it to
- * the layer 2 state machine, carries out what comes back. Only the helpers without
- * system calls are unit tested.
- * ====================================================================== */
-
 #define _POSIX_C_SOURCE 200809L
 
 #include "sys_ops.h"
 
 #include <limits.h>
 
-/* Helpers without system calls; these are unit tested. */
+/* ======================================================================
+ * LAYER 1: PURE HELPERS
+ * No system calls: status, timeout and exit code logic, unit tested.
+ * ====================================================================== */
 
 enum sys_status sys_ctx_init(struct sys_ctx *c) {
   if (c == NULL) {
@@ -49,7 +45,12 @@ const char *sys_describe(enum sys_status st) {
 
 int sys_exit_code(enum sys_status st) { return st == SYS_OK ? EXIT_OK : EXIT_FAIL; }
 
-/* Everything below needs a real kernel; unit tests drive the state machines directly instead. */
+/* ======================================================================
+ * LAYER 3: I/O
+ * The socket, relay hello, poll loop, clock and file. Reads an event, hands it to
+ * the layer 2 state machine, carries out what comes back. Everything below needs a
+ * real kernel; unit tests drive the state machines directly instead.
+ * ====================================================================== */
 #ifndef TEST
 
 #include <errno.h>

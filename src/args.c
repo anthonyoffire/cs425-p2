@@ -1,6 +1,6 @@
 /* ======================================================================
- * SUPPORT: COMMAND LINE (outside the three layers)
- * Pure parsing of argv into a struct; no I/O.
+ * LAYER 3: I/O (command line)
+ * Pure parsing of argv into a struct; no I/O of its own. Only main uses it.
  * ====================================================================== */
 
 #include "args.h"
