@@ -54,7 +54,7 @@ int main(int argc, char **argv)
             fprintf(stderr, "myapp: %s\n", sys_describe(st));
         }
     } else if (st == SYS_OK) {
-        st = run_receiver(&ctx);
+        st = sys_run_receiver(&ctx);
         if (st != SYS_OK) {
             fprintf(stderr, "myapp: %s\n", sys_describe(st));
         }

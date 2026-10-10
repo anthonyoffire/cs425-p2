@@ -35,13 +35,34 @@ struct receiver_out {
   uint64_t timer_due;               /* absolute ms; meaningful when timer_on */
 };
 
+/**
+ * @brief Starts a receiver waiting for packet 0 and arms the idle timer.
+ * @param r   Receiver to initialise.
+ * @param now Current time in ms.
+ * @param out Receives what the caller must do next.
+ * @return RECEIVER_RUNNING, or RECEIVER_ERROR on invalid arguments.
+ */
 enum receiver_state receiver_init(struct receiver *r, uint64_t now, struct receiver_out *out);
 
-/** A datagram arrived; invalid ones are ignored without a reply. */
+/**
+ * @brief A datagram arrived; invalid ones are ignored without a reply.
+ * @param r   Receiver.
+ * @param buf Datagram bytes.
+ * @param len Number of bytes in @p buf.
+ * @param now Current time in ms.
+ * @param out Receives what the caller must do next (deliver, close, send).
+ * @return The receiver's state after the event.
+ */
 enum receiver_state rdt_rcv(struct receiver *r, const uint8_t *buf, size_t len,
                                          uint64_t now, struct receiver_out *out);
 
-/** The caller's wait ended; acts only if the deadline has really passed. */
+/**
+ * @brief The caller's wait ended; acts only if the deadline has really passed.
+ * @param r   Receiver.
+ * @param now Current time in ms.
+ * @param out Receives what the caller must do next.
+ * @return The receiver's state after the event.
+ */
 enum receiver_state receiver_timeout(struct receiver *r, uint64_t now, struct receiver_out *out);
 
 #endif // RECEIVER_H

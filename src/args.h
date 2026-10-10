@@ -26,10 +26,20 @@ struct args {
   const char *file;  /* points into argv */
 };
 
-/** Usage text, exactly as the assignment specifies. */
+/**
+ * @brief Usage text, exactly as the assignment specifies.
+ * @return Static, NUL-terminated usage string; never NULL.
+ */
 const char *args_usage(void);
 
-/** Parses argv (mode in argv[1], then getopt options). Fills *out only on ARGS_OK. */
+/**
+ * @brief Parses argv (mode in argv[1], then getopt options).
+ * @param argc Argument count, as passed to main.
+ * @param argv Argument vector, as passed to main. The relay and file pointers in @p out
+ *             point into it.
+ * @param out  Filled only when ARGS_OK is returned.
+ * @return ARGS_OK if parsed, ARGS_USAGE if there were no arguments, ARGS_BAD if malformed.
+ */
 enum args_status args_parse(int argc, char **argv, struct args *out);
 
 #endif // ARGS_H

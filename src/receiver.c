@@ -121,7 +121,7 @@ static enum sys_status react_to_datagram(struct sys_ctx *c, const struct receive
   return SYS_OK;
 }
 
-static enum sys_status wait_for_datagram(struct sys_ctx *c, struct receiver *r) {
+enum sys_status wait_for_datagram(struct sys_ctx *c, struct receiver *r) {
   struct receiver_out out;
   uint8_t buf[PKT_MAX_LEN];
   uint64_t now = 0;
@@ -159,25 +159,6 @@ static enum sys_status wait_for_datagram(struct sys_ctx *c, struct receiver *r) 
     }
   }
   return SYS_OK;
-}
-
-enum sys_status run_receiver(struct sys_ctx *c) {
-  struct receiver r;
-  if (c == NULL) {
-    return SYS_ERR;
-  }
-  enum sys_status st = wait_for_datagram(c, &r);
-  if (st != SYS_OK) {
-    return st;
-  }
-  switch (r.state) {
-    case RECEIVER_DONE:
-      return SYS_OK;
-    case RECEIVER_GAVE_UP:
-      return SYS_GAVE_UP;
-    default:
-      return SYS_ERR;
-  }
 }
 
 #endif

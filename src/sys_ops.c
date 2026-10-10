@@ -215,4 +215,45 @@ enum sys_status net_register(struct sys_ctx *c, const char *session, int is_send
   return SYS_GAVE_UP;
 }
 
+enum sys_status sys_run_sender(struct sys_ctx *c, uint32_t window, uint32_t timeout_ms,
+                               struct sender_stats *stats) {
+  struct sender s;
+  if (c == NULL || sender_init(&s, window, timeout_ms) != SENDER_RUNNING) {
+    return SYS_ERR;
+  }
+  enum sys_status st = run_send_loop(c, &s);
+  if (stats != NULL) {
+    *stats = s.stats;
+  }
+  if (st != SYS_OK) {
+    return st;
+  }
+  switch (s.state) {
+  case SENDER_DONE:
+    return SYS_OK;
+  case SENDER_GAVE_UP:
+    return SYS_GAVE_UP;
+  default:
+    return SYS_ERR;
+  }
+}
+
+enum sys_status sys_run_receiver(struct sys_ctx *c) {
+  struct receiver r;
+  if (c == NULL) {
+    return SYS_ERR;
+  }
+  enum sys_status st = wait_for_datagram(c, &r);
+  if (st != SYS_OK) {
+    return st;
+  }
+  switch (r.state) {
+    case RECEIVER_DONE:
+      return SYS_OK;
+    case RECEIVER_GAVE_UP:
+      return SYS_GAVE_UP;
+    default:
+      return SYS_ERR;
+  }
+}
 #endif // TEST
