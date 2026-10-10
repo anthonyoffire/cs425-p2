@@ -4,6 +4,7 @@
  * ====================================================================== */
 
 #include "sender.h"
+#include "custom_static.h"
 
 #include <string.h>
 
@@ -69,20 +70,20 @@ int sender_has_data(const struct sender *s) {
   return s != NULL && s->state == SENDER_RUNNING && !s->eof && !win_full(&s->win);
 }
 
-static int out_begin(struct sender_out *out) {
+CUSTOM_STATIC int sender_out_begin(struct sender_out *out) {
   out->nsend = 0;
   out->timer_on = 0;
   out->timer_due = 0;
   return 0;
 }
 
-static enum sender_state finish(struct sender *s, struct sender_out *out) {
+CUSTOM_STATIC enum sender_state sender_finish(struct sender *s, struct sender_out *out) {
   out->timer_on = s->timer_on;
   out->timer_due = s->deadline;
   return s->state;
 }
 
-static int queue_send(struct sender *s, struct sender_out *out, uint32_t seq, int resend) {
+CUSTOM_STATIC int queue_send(struct sender *s, struct sender_out *out, uint32_t seq, int resend) {
   const struct slot *slot = win_get(&s->win, seq);
   if (slot == NULL) {
     s->state = SENDER_ERROR;
@@ -96,7 +97,17 @@ static int queue_send(struct sender *s, struct sender_out *out, uint32_t seq, in
   return 0;
 }
 
-static int push_packet(struct sender *s, const struct packet *p, uint64_t now,
+#ifdef TEST
+CUSTOM_STATIC sender_queue_send_fn sender_timeout_queue_send = queue_send;
+
+void sender_set_timeout_queue_send(sender_queue_send_fn queue_fn) {
+  sender_timeout_queue_send = queue_fn == NULL ? queue_send : queue_fn;
+}
+#else
+#define sender_timeout_queue_send queue_send
+#endif
+
+CUSTOM_STATIC int push_packet(struct sender *s, const struct packet *p, uint64_t now,
                        struct sender_out *out) {
   uint8_t dg[PKT_MAX_LEN];
   size_t len = 0;
@@ -116,7 +127,7 @@ static int push_packet(struct sender *s, const struct packet *p, uint64_t now,
 }
 
 /* The FIN goes out once every DATA packet has been acknowledged. */
-static int maybe_send_fin(struct sender *s, uint64_t now, struct sender_out *out) {
+CUSTOM_STATIC int maybe_send_fin(struct sender *s, uint64_t now, struct sender_out *out) {
   if (!s->eof || s->win.next != s->total || s->win.base != s->total) {
     return 0;
   }
@@ -132,20 +143,20 @@ enum sender_state rdt_send(struct sender *s, const uint8_t *chunk, size_t n,
   if (s == NULL || out == NULL) {
     return SENDER_ERROR;
   }
-  out_begin(out);
+  sender_out_begin(out);
   if (s->state != SENDER_RUNNING) {
-    return finish(s, out);
+    return sender_finish(s, out);
   }
   if (s->eof || win_full(&s->win) || n > PKT_MAX_PAYLOAD || (n > 0 && chunk == NULL)) {
     s->state = SENDER_ERROR;
-    return finish(s, out);
+    return sender_finish(s, out);
   }
 
   if (n == 0) {
     s->eof = 1;
     s->total = s->win.next;
     (void)maybe_send_fin(s, now, out);
-    return finish(s, out);
+    return sender_finish(s, out);
   }
 
   struct packet p;
@@ -158,7 +169,7 @@ enum sender_state rdt_send(struct sender *s, const uint8_t *chunk, size_t n,
     s->eof = 1;
     s->total = s->win.next;
   }
-  return finish(s, out);
+  return sender_finish(s, out);
 }
 
 enum sender_state sender_rdt_rcv(struct sender *s, const uint8_t *buf, size_t len,
@@ -166,15 +177,15 @@ enum sender_state sender_rdt_rcv(struct sender *s, const uint8_t *buf, size_t le
   if (s == NULL || out == NULL) {
     return SENDER_ERROR;
   }
-  out_begin(out);
+  sender_out_begin(out);
   if (s->state != SENDER_RUNNING) {
-    return finish(s, out);
+    return sender_finish(s, out);
   }
 
   struct packet p;
   if (pkt_decode(buf, len, &p) != PKT_OK || p.type != PKT_ACK ||
       win_ack(&s->win, p.seq) != WIN_OK) {
-    return finish(s, out);
+    return sender_finish(s, out);
   }
 
   s->timeouts = 0;
@@ -188,16 +199,16 @@ enum sender_state sender_rdt_rcv(struct sender *s, const uint8_t *buf, size_t le
     s->state = SENDER_DONE;
     s->timer_on = 0;
   }
-  return finish(s, out);
+  return sender_finish(s, out);
 }
 
 enum sender_state sender_timeout(struct sender *s, uint64_t now, struct sender_out *out) {
   if (s == NULL || out == NULL) {
     return SENDER_ERROR;
   }
-  out_begin(out);
+  sender_out_begin(out);
   if (s->state != SENDER_RUNNING || !s->timer_on || now < s->deadline) {
-    return finish(s, out);
+    return sender_finish(s, out);
   }
 
   s->stats.timeouts++;
@@ -205,15 +216,15 @@ enum sender_state sender_timeout(struct sender *s, uint64_t now, struct sender_o
   if (s->timeouts >= SENDER_MAX_TIMEOUTS) {
     s->state = SENDER_GAVE_UP;
     s->timer_on = 0;
-    return finish(s, out);
+    return sender_finish(s, out);
   }
   for (uint32_t seq = s->win.base; seq < s->win.next; seq++) {
-    if (queue_send(s, out, seq, 1) != 0) {
+    if (sender_timeout_queue_send(s, out, seq, 1) != 0) {
       break;
     }
   }
   s->deadline = now + s->timeout_ms;
-  return finish(s, out);
+  return sender_finish(s, out);
 }
 
 #ifndef TEST
@@ -222,7 +233,7 @@ enum sender_state sender_timeout(struct sender *s, uint64_t now, struct sender_o
  * LAYER 3: SENDER I/O
  * ====================================================================== */
 
-static enum sys_status send_out(const struct sys_ctx *c, const struct sender_out *out) {
+CUSTOM_STATIC enum sys_status send_out(const struct sys_ctx *c, const struct sender_out *out) {
   for (size_t i = 0; i < out->nsend; i++) {
     enum sys_status st = send_datagram(c, out->send[i]->dg, out->send[i]->len);
     if (st != SYS_OK) {

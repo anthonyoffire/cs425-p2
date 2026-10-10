@@ -36,7 +36,7 @@ void test_send_all_options(void) {
   TEST_ASSERT_EQUAL_UINT16(30000, a.port);
 }
 
-void test_recv_ok(void) {
+void test_argparse_ok(void) {
   char *argv[] = {"myapp", "recv", "-s", "abc", "-p", "20000", "h", "out", NULL};
   struct args a;
   TEST_ASSERT_EQUAL(ARGS_OK, args_parse(8, argv, &a));
@@ -95,14 +95,41 @@ void test_usage_text_starts_correctly(void) {
   TEST_ASSERT_EQUAL_INT(0, strncmp(args_usage(), "Usage: myapp send -s <session>", 30));
 }
 
+void test_session_name_too_long(void){
+  struct args a;
+  char *too_long[] = {"myapp", "send", "-s", "extralongsuperdupercalifragilisticexpialidociousmegastringsession", "h", "f", NULL};
+  TEST_ASSERT_EQUAL(ARGS_BAD, args_parse(7, too_long, &a));
+}
+
+void test_argparse_null_struct(void) {
+  char *args[] = {"myapp", "send", "-s", "a", "h", "f", NULL};
+  TEST_ASSERT_EQUAL(ARGS_BAD, args_parse(7, args, NULL));
+}
+
+void test_corrupt_value_too_large(void) {
+  struct args a;
+  char *corrupt[] = {"myapp", "send", "-s", "a", "-c", "1.5", "h", "f", NULL};
+  TEST_ASSERT_EQUAL(ARGS_BAD, args_parse(8, corrupt, &a));
+}
+
+void test_dup_value_too_large(void) {
+  struct args a;
+  char *dup[] = {"myapp", "send", "-s", "a", "-d", "1000000", "h", "f", NULL};
+  TEST_ASSERT_EQUAL(ARGS_BAD, args_parse(8, dup, &a));
+}
+
 void run_args_tests(void) {
   RUN_TEST(test_no_args_is_usage);
   RUN_TEST(test_send_defaults);
   RUN_TEST(test_send_all_options);
-  RUN_TEST(test_recv_ok);
+  RUN_TEST(test_argparse_ok);
   RUN_TEST(test_recv_rejects_send_options);
   RUN_TEST(test_bad_mode_and_missing_pieces);
   RUN_TEST(test_bad_values);
   RUN_TEST(test_timeout_limits);
   RUN_TEST(test_usage_text_starts_correctly);
+  RUN_TEST(test_session_name_too_long);
+  RUN_TEST(test_argparse_null_struct);
+  RUN_TEST(test_corrupt_value_too_large);
+  RUN_TEST(test_dup_value_too_large);
 }

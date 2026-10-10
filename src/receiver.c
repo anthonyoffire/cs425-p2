@@ -4,18 +4,31 @@
  * ====================================================================== */
 
 #include "receiver.h"
+#include "custom_static.h"
 
 #include <string.h>
 
 #ifndef TEST
 #include "sys_ops.h"
+#else
+CUSTOM_STATIC receiver_pkt_encode_fn receiver_pkt_encoder = pkt_encode;
+
+void receiver_set_pkt_encoder(receiver_pkt_encode_fn encoder) {
+  receiver_pkt_encoder = encoder == NULL ? pkt_encode : encoder;
+}
+
+#define receiver_encode_packet receiver_pkt_encoder
 #endif
 
-static int is_active(const struct receiver *r) {
+#ifndef TEST
+#define receiver_encode_packet pkt_encode
+#endif
+
+CUSTOM_STATIC int is_active(const struct receiver *r) {
   return r->state == RECEIVER_RUNNING || r->state == RECEIVER_LINGERING;
 }
 
-static int out_begin(struct receiver_out *out) {
+CUSTOM_STATIC int receiver_out_begin(struct receiver_out *out) {
   out->payload_len = 0;
   out->close_file = 0;
   out->ack_len = 0;
@@ -24,18 +37,21 @@ static int out_begin(struct receiver_out *out) {
   return 0;
 }
 
-static enum receiver_state finish(struct receiver *r, struct receiver_out *out) {
+CUSTOM_STATIC enum receiver_state receiver_finish(struct receiver *r, struct receiver_out *out) {
   out->timer_on = is_active(r);
   out->timer_due = r->deadline;
   return r->state;
 }
 
-static int build_ack(struct receiver *r, struct receiver_out *out) {
+CUSTOM_STATIC int build_ack(struct receiver *r, struct receiver_out *out) {
+  if (r == NULL || out == NULL) {
+    return -1;
+  }
   struct packet ack;
   memset(&ack, 0, sizeof ack);
   ack.type = PKT_ACK;
   ack.seq = r->expected;
-  if (pkt_encode(&ack, out->ack, sizeof out->ack, &out->ack_len) != PKT_OK) {
+  if (receiver_encode_packet(&ack, out->ack, sizeof out->ack, &out->ack_len) != PKT_OK) {
     out->ack_len = 0;
     r->state = RECEIVER_ERROR;
     return -1;
@@ -50,19 +66,19 @@ enum receiver_state receiver_init(struct receiver *r, uint64_t now, struct recei
   r->expected = 0;
   r->state = RECEIVER_RUNNING;
   r->deadline = now + RECEIVER_IDLE_MS;
-  out_begin(out);
-  return finish(r, out);
+  receiver_out_begin(out);
+  return receiver_finish(r, out);
 }
 
-enum receiver_state rdt_rcv(struct receiver *r, const uint8_t *buf, size_t len,
+enum receiver_state receiver_rdt_rcv(struct receiver *r, const uint8_t *buf, size_t len,
                                          uint64_t now, struct receiver_out *out) {
   if (r == NULL || out == NULL) {
     return RECEIVER_ERROR;
   }
-  out_begin(out);
+  receiver_out_begin(out);
   struct packet p;
   if (!is_active(r) || pkt_decode(buf, len, &p) != PKT_OK) {
-    return finish(r, out);
+    return receiver_finish(r, out);
   }
 
   if (p.type != PKT_ACK) {
@@ -77,24 +93,24 @@ enum receiver_state rdt_rcv(struct receiver *r, const uint8_t *buf, size_t len,
       r->expected++;
     }
     if (build_ack(r, out) != 0) {
-      return finish(r, out);
+      return receiver_finish(r, out);
     }
   }
 
   uint32_t window_ms = r->state == RECEIVER_LINGERING ? RECEIVER_LINGER_MS : RECEIVER_IDLE_MS;
   r->deadline = now + window_ms;
-  return finish(r, out);
+  return receiver_finish(r, out);
 }
 
 enum receiver_state receiver_timeout(struct receiver *r, uint64_t now, struct receiver_out *out) {
   if (r == NULL || out == NULL) {
     return RECEIVER_ERROR;
   }
-  out_begin(out);
+  receiver_out_begin(out);
   if (is_active(r) && now >= r->deadline) {
     r->state = r->state == RECEIVER_LINGERING ? RECEIVER_DONE : RECEIVER_GAVE_UP;
   }
-  return finish(r, out);
+  return receiver_finish(r, out);
 }
 
 #ifndef TEST
@@ -103,7 +119,8 @@ enum receiver_state receiver_timeout(struct receiver *r, uint64_t now, struct re
  * LAYER 3: RECEIVER I/O
  * ====================================================================== */
 
-static enum sys_status react_to_datagram(struct sys_ctx *c, const struct receiver_out *out) {
+CUSTOM_STATIC enum sys_status react_to_datagram(struct sys_ctx *c,
+                                                 const struct receiver_out *out) {
   if (out->payload_len > 0 &&
       fwrite(out->payload, 1, out->payload_len, c->fp) != out->payload_len) {
     return SYS_ERR;
@@ -152,7 +169,7 @@ enum sys_status wait_for_datagram(struct sys_ctx *c, struct receiver *r) {
     if (st != SYS_OK) {
       return st;
     }
-    (void)rdt_rcv(r, buf, n, now, &out);
+    (void)receiver_rdt_rcv(r, buf, n, now, &out);
     st = react_to_datagram(c, &out);
     if (st != SYS_OK) {
       return st;

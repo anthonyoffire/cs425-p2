@@ -4,6 +4,7 @@
  * ====================================================================== */
 
 #include "args.h"
+#include "custom_static.h"
 
 #include <errno.h>
 #include <stdlib.h>
@@ -16,7 +17,7 @@
 #define MAX_WINDOW 64
 #define MAX_TIMEOUT_MS 60000
 
-static const char USAGE[] =
+CUSTOM_STATIC const char USAGE[] =
     "Usage: myapp send -s <session> [-w window] [-T timeout-ms] [-l loss]\n"
     "                  [-c corrupt] [-d dup] [-p port] <relay> <file>\n"
     "       myapp recv -s <session> [-p port] <relay> <file>\n"
@@ -33,7 +34,7 @@ static const char USAGE[] =
 
 const char *args_usage(void) { return USAGE; }
 
-static int parse_long(const char *s, long min, long max, long *out) {
+CUSTOM_STATIC int parse_long(const char *s, long min, long max, long *out) {
   char *end = NULL;
   errno = 0;
   long v = strtol(s, &end, 10);
@@ -44,7 +45,7 @@ static int parse_long(const char *s, long min, long max, long *out) {
   return 0;
 }
 
-static int parse_prob(const char *s, double *out) {
+CUSTOM_STATIC int parse_prob(const char *s, double *out) {
   char *end = NULL;
   errno = 0;
   double v = strtod(s, &end);
@@ -55,7 +56,7 @@ static int parse_prob(const char *s, double *out) {
   return 0;
 }
 
-static int valid_session(const char *s) {
+CUSTOM_STATIC int valid_session(const char *s) {
   size_t n = strlen(s);
   if (n < 1 || n > ARGS_SESSION_MAX) {
     return 0;
@@ -69,7 +70,7 @@ static int valid_session(const char *s) {
   return 1;
 }
 
-static void reset_getopt(void) {
+CUSTOM_STATIC void reset_getopt(void) {
   opterr = 0;
 #if defined(__GLIBC__)
   optind = 0;

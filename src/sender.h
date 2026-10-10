@@ -114,6 +114,15 @@ struct sender {
  */
 enum sender_state sender_init(struct sender *s, uint32_t window, uint32_t timeout_ms);
 
+#ifdef TEST
+typedef int (*sender_queue_send_fn)(struct sender *s, struct sender_out *out,
+                                    uint32_t seq, int resend);
+void sender_set_timeout_queue_send(sender_queue_send_fn queue_fn);
+int queue_send(struct sender *s, struct sender_out *out, uint32_t seq, int resend);
+int push_packet(struct sender *s, const struct packet *p, uint64_t now,
+                struct sender_out *out);
+#endif
+
 /**
  * @brief Tells whether the caller should read the next file chunk and pass it to rdt_send.
  * @param s Sender.

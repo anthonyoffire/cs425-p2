@@ -44,6 +44,13 @@ struct receiver_out {
  */
 enum receiver_state receiver_init(struct receiver *r, uint64_t now, struct receiver_out *out);
 
+#ifdef TEST
+typedef enum pkt_status (*receiver_pkt_encode_fn)(const struct packet *p, uint8_t *buf,
+                                                  size_t cap, size_t *out_len);
+void receiver_set_pkt_encoder(receiver_pkt_encode_fn encoder);
+int build_ack(struct receiver *r, struct receiver_out *out);
+#endif
+
 /**
  * @brief A datagram arrived; invalid ones are ignored without a reply.
  * @param r   Receiver.
@@ -53,7 +60,7 @@ enum receiver_state receiver_init(struct receiver *r, uint64_t now, struct recei
  * @param out Receives what the caller must do next (deliver, close, send).
  * @return The receiver's state after the event.
  */
-enum receiver_state rdt_rcv(struct receiver *r, const uint8_t *buf, size_t len,
+enum receiver_state receiver_rdt_rcv(struct receiver *r, const uint8_t *buf, size_t len,
                                          uint64_t now, struct receiver_out *out);
 
 /**

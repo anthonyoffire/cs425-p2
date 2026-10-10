@@ -81,6 +81,35 @@ void test_sender_init_rejects_bad_config(void) {
   TEST_ASSERT_EQUAL(SENDER_ERROR, sender_init(NULL, 8, 250));
 }
 
+void test_sender_queue_send_rejects_sequence_not_in_window(void) {
+  start(4);
+  TEST_ASSERT_EQUAL_INT(-1, queue_send(&S, &O, 0, 0));
+  TEST_ASSERT_EQUAL(SENDER_ERROR, S.state);
+  TEST_ASSERT_EQUAL_UINT(0, O.nsend);
+}
+
+void test_sender_push_packet_rejects_invalid_packet(void) {
+  start(4);
+  struct packet p;
+  memset(&p, 0, sizeof p);
+  p.type = 3;
+  TEST_ASSERT_EQUAL_INT(-1, push_packet(&S, &p, T0, &O));
+  TEST_ASSERT_EQUAL(SENDER_ERROR, S.state);
+  TEST_ASSERT_EQUAL_UINT(0, O.nsend);
+}
+
+void test_sender_push_packet_rejects_unqueueable_sequence(void) {
+  start(4);
+  struct packet p;
+  memset(&p, 0, sizeof p);
+  p.type = PKT_DATA;
+  p.seq = 5;
+  TEST_ASSERT_EQUAL_INT(-1, push_packet(&S, &p, T0, &O));
+  TEST_ASSERT_EQUAL(SENDER_ERROR, S.state);
+  TEST_ASSERT_EQUAL_UINT(0, O.nsend);
+  TEST_ASSERT_EQUAL_UINT32(1, S.win.next);
+}
+
 void test_sender_first_chunk_is_sent_and_starts_timer(void) {
   start(4);
   TEST_ASSERT_TRUE(sender_has_data(&S));
@@ -186,6 +215,28 @@ void test_sender_timeout_resends_the_whole_window(void) {
   TEST_ASSERT_EQUAL_UINT32(4, S.win.next);
 }
 
+static int fail_timeout_queue_send(struct sender *s, struct sender_out *out, uint32_t seq,
+                                   int resend) {
+  (void)s;
+  (void)out;
+  (void)seq;
+  (void)resend;
+  return -1;
+}
+
+void test_sender_timeout_stops_when_queue_send_fails(void) {
+  start(3);
+  send_full_chunks(3, T0);
+  sender_set_timeout_queue_send(fail_timeout_queue_send);
+
+  TEST_ASSERT_EQUAL(SENDER_RUNNING, sender_timeout(&S, T0 + 250, &O));
+  sender_set_timeout_queue_send(NULL);
+
+  TEST_ASSERT_EQUAL_UINT(0, O.nsend);
+  TEST_ASSERT_EQUAL_UINT32(1, S.stats.timeouts);
+  TEST_ASSERT_EQUAL_UINT64(T0 + 500, O.timer_due);
+}
+
 void test_sender_gives_up_after_ten_timeouts(void) {
   start(2);
   send_full_chunks(2, T0);
@@ -265,6 +316,19 @@ void test_sender_rejects_misuse(void) {
   TEST_ASSERT_EQUAL(SENDER_ERROR, rdt_send(&S, NULL, 5, T0, &O));
   TEST_ASSERT_EQUAL(SENDER_ERROR, rdt_send(NULL, full_chunk, 1, T0, &O));
   TEST_ASSERT_EQUAL(SENDER_ERROR, sender_timeout(&S, T0, NULL));
+}
+
+void test_sender_rdt_send_returns_existing_terminal_state(void) {
+  start(4);
+  S.state = SENDER_DONE;
+  TEST_ASSERT_EQUAL(SENDER_DONE, rdt_send(&S, full_chunk, sizeof full_chunk, T0, &O));
+  TEST_ASSERT_EQUAL_UINT(0, O.nsend);
+}
+
+void test_sender_rdt_rcv_rejects_null_arguments(void) {
+  start(4);
+  TEST_ASSERT_EQUAL(SENDER_ERROR, sender_rdt_rcv(NULL, NULL, 0, T0, &O));
+  TEST_ASSERT_EQUAL(SENDER_ERROR, sender_rdt_rcv(&S, NULL, 0, T0, NULL));
 }
 
 /* ---- whole transfers over a simulated relay, driven like the real loop ---- */
@@ -495,6 +559,9 @@ void test_sender_transfer_lossy_window_64(void) {
 void run_sender_tests(void) {
   RUN_TEST(test_sender_window_basics);
   RUN_TEST(test_sender_init_rejects_bad_config);
+  RUN_TEST(test_sender_queue_send_rejects_sequence_not_in_window);
+  RUN_TEST(test_sender_push_packet_rejects_invalid_packet);
+  RUN_TEST(test_sender_push_packet_rejects_unqueueable_sequence);
   RUN_TEST(test_sender_first_chunk_is_sent_and_starts_timer);
   RUN_TEST(test_sender_timer_is_not_restarted_by_later_sends);
   RUN_TEST(test_sender_full_window_stops_wanting_data);
@@ -503,12 +570,15 @@ void run_sender_tests(void) {
   RUN_TEST(test_sender_timer_before_due_does_nothing);
   RUN_TEST(test_sender_timeout_goes_back_to_base);
   RUN_TEST(test_sender_timeout_resends_the_whole_window);
+  RUN_TEST(test_sender_timeout_stops_when_queue_send_fails);
   RUN_TEST(test_sender_gives_up_after_ten_timeouts);
   RUN_TEST(test_sender_progress_resets_timeout_count);
   RUN_TEST(test_sender_fin_follows_last_ack);
   RUN_TEST(test_sender_empty_file_sends_only_fin);
   RUN_TEST(test_sender_exact_multiple_waits_for_acks_before_fin);
   RUN_TEST(test_sender_rejects_misuse);
+  RUN_TEST(test_sender_rdt_send_returns_existing_terminal_state);
+  RUN_TEST(test_sender_rdt_rcv_rejects_null_arguments);
   RUN_TEST(test_sender_transfer_clean_stop_and_wait);
   RUN_TEST(test_sender_transfer_clean_window_8);
   RUN_TEST(test_sender_transfer_empty_file);

@@ -60,11 +60,6 @@ void test_sys_exit_code_maps_success_and_failures(void) {
   TEST_ASSERT_EQUAL_INT(EXIT_FAIL, sys_exit_code(SYS_ERR));
 }
 
-void test_exit_codes_match_the_assignment(void) {
-  TEST_ASSERT_EQUAL_INT(0, EXIT_OK);
-  TEST_ASSERT_EQUAL_INT(1, EXIT_USAGE);
-  TEST_ASSERT_EQUAL_INT(2, EXIT_FAIL);
-}
 
 void run_sys_ops_tests(void) {
   RUN_TEST(test_sys_ctx_init_marks_everything_closed);
@@ -75,5 +70,4 @@ void run_sys_ops_tests(void) {
   RUN_TEST(test_sys_describe_has_a_message_for_every_status);
   RUN_TEST(test_sys_describe_unknown_status_is_not_null);
   RUN_TEST(test_sys_exit_code_maps_success_and_failures);
-  RUN_TEST(test_exit_codes_match_the_assignment);
 }

@@ -136,7 +136,7 @@ static void run_transfer(size_t srclen, uint32_t window, unsigned pct, uint64_t 
       n.head = (n.head + 1) % MAXQ;
       n.count--;
       if (f.to_receiver) {
-        (void)rdt_rcv(&n.r, f.dg, f.len, n.now, &n.ro);
+        (void)receiver_rdt_rcv(&n.r, f.dg, f.len, n.now, &n.ro);
         carry_out_receiver();
       } else {
         (void)sender_rdt_rcv(&n.s, f.dg, f.len, n.now, &n.so);

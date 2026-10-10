@@ -77,6 +77,8 @@ void test_encode_rejects_bad_input(void) {
   TEST_ASSERT_EQUAL(PKT_ERR_ARG, pkt_encode(&p, buf, sizeof buf, &n));
   p.length = 4;
   TEST_ASSERT_EQUAL(PKT_ERR_ARG, pkt_encode(&p, buf, 12, &n));
+  struct packet *nullpacket = NULL;
+  TEST_ASSERT_EQUAL(PKT_ERR_ARG, pkt_encode(nullpacket, buf, sizeof buf, &n));
 }
 
 void test_decode_rejects_invalid(void) {

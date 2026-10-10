@@ -21,7 +21,7 @@ static enum receiver_state feed(uint8_t type, uint32_t seq, const char *payload,
   uint8_t dg[PKT_MAX_LEN];
   size_t len = 0;
   TEST_ASSERT_EQUAL(PKT_OK, pkt_encode(&p, dg, sizeof dg, &len));
-  return rdt_rcv(&R, dg, len, now, &O);
+  return receiver_rdt_rcv(&R, dg, len, now, &O);
 }
 
 static uint32_t ack_seq(void) {
@@ -128,7 +128,7 @@ void test_receiver_ignores_corrupt_datagram(void) {
   size_t len = 0;
   TEST_ASSERT_EQUAL(PKT_OK, pkt_encode(&p, dg, sizeof dg, &len));
   dg[PKT_HEADER_LEN] ^= 0x01;
-  TEST_ASSERT_EQUAL(RECEIVER_RUNNING, rdt_rcv(&R, dg, len, T0 + 500, &O));
+  TEST_ASSERT_EQUAL(RECEIVER_RUNNING, receiver_rdt_rcv(&R, dg, len, T0 + 500, &O));
   TEST_ASSERT_EQUAL_UINT(0, O.ack_len);
   TEST_ASSERT_EQUAL_UINT(0, O.payload_len);
   TEST_ASSERT_EQUAL_UINT64(T0 + RECEIVER_IDLE_MS, O.timer_due);
@@ -170,10 +170,32 @@ void test_receiver_done_after_linger(void) {
 
 void test_receiver_null_arguments(void) {
   TEST_ASSERT_EQUAL(RECEIVER_ERROR, receiver_init(NULL, T0, &O));
-  TEST_ASSERT_EQUAL(RECEIVER_ERROR, rdt_rcv(NULL, NULL, 0, T0, &O));
+  TEST_ASSERT_EQUAL(RECEIVER_ERROR, receiver_rdt_rcv(NULL, NULL, 0, T0, &O));
   TEST_ASSERT_EQUAL(RECEIVER_ERROR, receiver_timeout(&R, T0, NULL));
 }
 
+static enum pkt_status fail_pkt_encode(const struct packet *p, uint8_t *buf, size_t cap,
+                                       size_t *out_len) {
+  (void)p;
+  (void)buf;
+  (void)cap;
+  (void)out_len;
+  return PKT_ERR_ARG;
+}
+
+void test_buildack_receiver_error(void) {
+  start();
+  receiver_set_pkt_encoder(fail_pkt_encode);
+  enum receiver_state state = feed(PKT_DATA, 0, "x", T0 + 1);
+  enum receiver_state receiver_state_after = R.state;
+  size_t ack_len = O.ack_len;
+  receiver_set_pkt_encoder(NULL);
+
+  TEST_ASSERT_EQUAL(RECEIVER_ERROR, state);
+  TEST_ASSERT_EQUAL(RECEIVER_ERROR, receiver_state_after);
+  TEST_ASSERT_EQUAL_UINT(0, ack_len);
+  TEST_ASSERT_EQUAL_INT(-1, build_ack(NULL, &O));
+}
 void run_receiver_tests(void) {
   RUN_TEST(test_receiver_init_starts_idle_timer);
   RUN_TEST(test_receiver_in_order_data_is_delivered_and_acked);
@@ -191,4 +213,5 @@ void run_receiver_tests(void) {
   RUN_TEST(test_receiver_idle_timer_restarts_on_valid_packet);
   RUN_TEST(test_receiver_done_after_linger);
   RUN_TEST(test_receiver_null_arguments);
+  RUN_TEST(test_buildack_receiver_error);
 }
