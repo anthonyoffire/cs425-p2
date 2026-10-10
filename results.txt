@@ -1,0 +1,117 @@
+window=1 loss=0 trial=1
+sent 1025 packets, 0 retransmitted, 0 timeouts
+
+real	1m43.222s
+user	0m0.015s
+sys	0m0.046s
+Copy verified: received-mib-1.bin
+
+------------------------------------------------
+
+window=1 loss=0 trial=2
+sent 1025 packets, 0 retransmitted, 0 timeouts
+
+real	1m43.264s
+user	0m0.015s
+sys	0m0.044s
+Copy verified: received-mib-2.bin
+
+------------------------------------------------
+
+window=1 loss=0 trial=3
+sent 1025 packets, 0 retransmitted, 0 timeouts
+
+real	1m43.242s
+user	0m0.016s
+sys	0m0.048s
+Copy verified: received-mib-3.bin
+
+------------------------------------------------
+
+window=1 loss=0.05 trial=1
+sent 1146 packets, 121 retransmitted, 121 timeouts
+
+real	2m13.540s
+user	0m0.017s
+sys	0m0.054s
+Copy verified: received-mib-4.bin
+
+------------------------------------------------
+
+window=1 loss=0.05 trial=2
+sent 1153 packets, 128 retransmitted, 128 timeouts
+
+real	2m15.277s
+user	0m0.023s
+sys	0m0.045s
+Copy verified: received-mib-5.bin
+
+------------------------------------------------
+
+window=1 loss=0.05 trial=3
+sent 1123 packets, 98 retransmitted, 98 timeouts
+
+real	2m7.753s
+user	0m0.019s
+sys	0m0.047s
+Copy verified: received-mib-6.bin
+
+------------------------------------------------
+
+window=16 loss=0 trial=1
+sent 1025 packets, 0 retransmitted, 0 timeouts
+
+real	0m6.627s
+user	0m0.000s
+sys	0m0.019s
+Copy verified: received-mib-7.bin
+
+------------------------------------------------
+
+window=16 loss=0 trial=2
+sent 1025 packets, 0 retransmitted, 0 timeouts
+
+real	0m6.610s
+user	0m0.004s
+sys	0m0.015s
+Copy verified: received-mib-8.bin
+
+------------------------------------------------
+
+window=16 loss=0 trial=3
+sent 1025 packets, 0 retransmitted, 0 timeouts
+
+real	0m6.650s
+user	0m0.003s
+sys	0m0.017s
+Copy verified: received-mib-9.bin
+
+------------------------------------------------
+
+window=16 loss=0.05 trial=1
+sent 2001 packets, 976 retransmitted, 61 timeouts
+
+real	0m25.312s
+user	0m0.008s
+sys	0m0.029s
+Copy verified: received-mib-10.bin
+
+------------------------------------------------
+
+window=16 loss=0.05 trial=2
+sent 1857 packets, 832 retransmitted, 52 timeouts
+
+real	0m21.947s
+user	0m0.004s
+sys	0m0.030s
+Copy verified: received-mib-11.bin
+
+------------------------------------------------
+
+window=16 loss=0.05 trial=3
+sent 1890 packets, 865 retransmitted, 55 timeouts
+
+real	0m23.418s
+user	0m0.007s
+sys	0m0.029s
+Copy verified: received-mib-12.bin
