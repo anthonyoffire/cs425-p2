@@ -20,8 +20,12 @@ for window in 1 16; do
         -l "$loss" -c 0 -d 0 127.0.0.1 1mib.bin
 
       wait "$recv_pid"
-      cmp -- 1mib.bin "$received"
-      echo "Copy verified: $received"
+      if cmp --silent 1mib.bin "$received"; then
+        echo "Copy verified: $received"
+      else
+        echo "Error: Files do not match for $received!" >&2
+        exit 1
+      fi
       echo -e "\n------------------------------------------------\n"
     done
   done
